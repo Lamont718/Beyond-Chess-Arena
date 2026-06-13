@@ -1,0 +1,90 @@
+// BeyondChess Arena — data model.
+//
+// LOCAL DEV: provider = "sqlite" (zero setup; DATABASE_URL="file:./dev.db").
+// PRODUCTION: change provider to "postgresql" and point DATABASE_URL at Neon.
+// The schema is written to be portable across both (no arrays/enums — lists are
+// stored as JSON strings, statuses as plain strings).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  displayName  String
+  role         String   @default("KID") // "COACH" | "KID"
+  rating       Int      @default(1000)
+  wins         Int      @default(0)
+  losses       Int      @default(0)
+  draws        Int      @default(0)
+  emoji        String   @default("♟️") // simple kid-friendly avatar
+  createdAt    DateTime @default(now())
+  lastSeenAt   DateTime @default(now())
+
+  gamesAsWhite       Game[]      @relation("WhiteGames")
+  gamesAsBlack       Game[]      @relation("BlackGames")
+  challengesSent     Challenge[] @relation("ChallengeFrom")
+  challengesReceived Challenge[] @relation("ChallengeTo")
+}
+
+model Game {
+  id        String   @id @default(cuid())
+  whiteId   String
+  blackId   String
+  fen       String   @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+  movesJson String   @default("[]") // JSON array of SAN strings
+  turn      String   @default("w") // "w" | "b"
+  status    String   @default("active") // "active" | "completed" | "aborted"
+  result    String? // "white_wins" | "black_wins" | "draw"
+  reason    String? // "checkmate" | "resignation" | "timeout" | "stalemate" | "draw-agreement" | ...
+  winnerId  String?
+
+  timeControlSec Int  @default(300) // initial clock per side, 0 = untimed
+  incrementSec   Int  @default(0)
+  whiteMs        Int? // remaining ms for white
+  blackMs        Int? // remaining ms for black
+  lastMoveAt     DateTime @default(now())
+
+  drawOfferBy    String? // userId who has a pending draw offer
+  rematchOfferBy String? // userId who offered a rematch after the game ended
+  rematchGameId  String? // id of the new game once a rematch is accepted
+
+  whiteRatingBefore Int?
+  blackRatingBefore Int?
+  whiteRatingAfter  Int?
+  blackRatingAfter  Int?
+
+  createdAt DateTime  @default(now())
+  endedAt   DateTime?
+
+  white User @relation("WhiteGames", fields: [whiteId], references: [id])
+  black User @relation("BlackGames", fields: [blackId], references: [id])
+
+  @@index([status])
+  @@index([whiteId])
+  @@index([blackId])
+}
+
+model Challenge {
+  id             String   @id @default(cuid())
+  fromId         String
+  toId           String? // null = open seek (quick-play matchmaking)
+  timeControlSec Int      @default(300)
+  incrementSec   Int      @default(0)
+  status         String   @default("open") // "open" | "accepted" | "declined" | "cancelled"
+  gameId         String? // set when accepted
+  createdAt      DateTime @default(now())
+
+  from User  @relation("ChallengeFrom", fields: [fromId], references: [id])
+  to   User? @relation("ChallengeTo", fields: [toId], references: [id])
+
+  @@index([status])
+  @@index([toId])
+}

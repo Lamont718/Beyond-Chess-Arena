@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 30 7% 15%;
+    --foreground: 40 12% 92%;
+    --card: 30 7% 20%;
+    --card-foreground: 40 12% 92%;
+    --popover: 30 7% 18%;
+    --popover-foreground: 40 12% 92%;
+    --primary: 38 92% 55%;
+    --primary-foreground: 36 45% 12%;
+    --secondary: 30 6% 27%;
+    --secondary-foreground: 40 12% 92%;
+    --muted: 30 6% 25%;
+    --muted-foreground: 40 6% 66%;
+    --accent: 38 92% 55%;
+    --accent-foreground: 36 45% 12%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 30 7% 31%;
+    --input: 30 7% 31%;
+    --ring: 38 92% 55%;
+    --radius: 0.75rem;
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* Subtle arena backdrop — use background-image (NOT the `background` shorthand,
+   which resets background-color to transparent and shows the white page through). */
+.arena-bg {
+  background-color: hsl(var(--background));
+  background-image:
+    radial-gradient(60rem 60rem at 15% -10%, hsl(38 92% 55% / 0.08), transparent 60%),
+    radial-gradient(50rem 50rem at 100% 0%, hsl(160 60% 45% / 0.06), transparent 55%);
+  min-height: 100vh;
+}
