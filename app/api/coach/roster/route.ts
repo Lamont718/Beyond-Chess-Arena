@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/session';
+import { containsProfanity } from '@/lib/profanity';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,6 +30,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'bad request' }, { status: 400 });
   }
   const username = parsed.data.username.trim().toLowerCase();
+
+  if (containsProfanity(username) || containsProfanity(parsed.data.displayName)) {
+    return NextResponse.json({ error: 'Please choose a different name.' }, { status: 400 });
+  }
 
   const existing = await prisma.user.findUnique({ where: { username } });
   if (existing) return NextResponse.json({ error: 'That username is taken.' }, { status: 409 });

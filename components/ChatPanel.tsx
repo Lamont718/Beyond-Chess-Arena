@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { Send, Trash2, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+const QUICK_EMOTES = ['👋', 'Good game!', 'Nice move!', 'Good luck!', 'Wow! 🤩', '😄', 'Oops! 😅', 'Thanks!'];
+
 interface ChatMsg {
   id: string;
   text: string;
@@ -58,23 +60,29 @@ export default function ChatPanel({
     atBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
   }
 
-  async function send(e: React.FormEvent) {
-    e.preventDefault();
-    const t = text.trim();
-    if (!t || sending) return;
+  async function sendText(t: string) {
+    const msg = t.trim();
+    if (!msg || sending) return;
     setSending(true);
-    setText('');
     atBottomRef.current = true;
     try {
       await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scope, text: t }),
+        body: JSON.stringify({ scope, text: msg }),
       });
       await poll();
     } finally {
       setSending(false);
     }
+  }
+
+  async function send(e: React.FormEvent) {
+    e.preventDefault();
+    const t = text.trim();
+    if (!t) return;
+    setText('');
+    await sendText(t);
   }
 
   async function remove(id: string) {
@@ -121,7 +129,21 @@ export default function ChatPanel({
         )}
       </div>
 
-      <form onSubmit={send} className="flex items-center gap-2 border-t border-border p-2">
+      <div className="flex flex-nowrap gap-1.5 overflow-x-auto border-t border-border px-2 pt-2">
+        {QUICK_EMOTES.map((q) => (
+          <button
+            key={q}
+            type="button"
+            onClick={() => sendText(q)}
+            disabled={sending}
+            className="shrink-0 rounded-full border border-border bg-background px-2.5 py-1 text-xs text-foreground transition-colors hover:border-primary/40 hover:bg-muted disabled:opacity-50"
+          >
+            {q}
+          </button>
+        ))}
+      </div>
+
+      <form onSubmit={send} className="flex items-center gap-2 p-2">
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/session';
+import { cleanText } from '@/lib/profanity';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,8 +58,9 @@ export async function POST(req: Request) {
   const parsed = postSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: 'Message must be 1–300 characters.' }, { status: 400 });
 
+  const clean = cleanText(parsed.data.text);
   await prisma.chatMessage.create({
-    data: { scope: parsed.data.scope, text: parsed.data.text, userId: me.id },
+    data: { scope: parsed.data.scope, text: clean, userId: me.id },
   });
   return NextResponse.json({ ok: true });
 }

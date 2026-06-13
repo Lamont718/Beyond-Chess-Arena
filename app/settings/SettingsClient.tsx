@@ -1,9 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { KeyRound } from 'lucide-react';
+import { KeyRound, Smile } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AVATARS } from '@/lib/avatars';
+import { cn } from '@/lib/utils';
 
 export default function SettingsClient({
   displayName,
@@ -14,10 +17,29 @@ export default function SettingsClient({
   username: string;
   emoji: string;
 }) {
+  const router = useRouter();
+  const [avatar, setAvatar] = useState(emoji);
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [confirm, setConfirm] = useState('');
   const [saving, setSaving] = useState(false);
+
+  async function pickAvatar(e: string) {
+    const prev = avatar;
+    setAvatar(e);
+    const res = await fetch('/api/auth/avatar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ emoji: e }),
+    });
+    if (res.ok) {
+      toast.success('Avatar updated!');
+      router.refresh();
+    } else {
+      setAvatar(prev);
+      toast.error('Could not update avatar.');
+    }
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -56,12 +78,34 @@ export default function SettingsClient({
   return (
     <main className="mx-auto max-w-md px-4 py-8">
       <div className="mb-6 flex items-center gap-3">
-        <span className="text-4xl">{emoji}</span>
+        <span className="text-4xl">{avatar}</span>
         <div>
           <h1 className="text-2xl font-bold">Settings</h1>
           <p className="text-sm text-muted-foreground">
             {displayName} · @{username}
           </p>
+        </div>
+      </div>
+
+      <div className="mb-4 rounded-2xl border border-border bg-card p-6">
+        <h2 className="mb-3 flex items-center gap-2 font-bold">
+          <Smile className="h-4 w-4 text-primary" /> Your avatar
+        </h2>
+        <div className="flex flex-wrap gap-1.5">
+          {AVATARS.map((e) => (
+            <button
+              key={e}
+              type="button"
+              onClick={() => pickAvatar(e)}
+              className={cn(
+                'flex h-10 w-10 items-center justify-center rounded-lg border text-xl transition-all',
+                avatar === e ? 'border-primary ring-2 ring-primary/30' : 'border-border hover:border-primary/40'
+              )}
+              aria-label={`Choose ${e}`}
+            >
+              {e}
+            </button>
+          ))}
         </div>
       </div>
 

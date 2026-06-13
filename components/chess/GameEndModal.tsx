@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { Trophy, HeartCrack, Minus, X, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import Confetti from '@/components/Confetti'
 import { cn } from '@/lib/utils'
 
 export type GameResult = 'win' | 'loss' | 'draw'
@@ -70,6 +71,7 @@ export default function GameEndModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in" onClick={onClose}>
+      {isWin && <Confetti />}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
       <div

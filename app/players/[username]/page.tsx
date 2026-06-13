@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/session';
 import { prisma } from '@/lib/prisma';
 import NavBar from '@/components/NavBar';
 import { describeTimeControl } from '@/lib/time-controls';
+import { computeBadges } from '@/lib/badges';
 import { cn } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -24,6 +25,8 @@ export default async function ProfilePage({ params }: { params: { username: stri
 
   const total = user.wins + user.losses + user.draws;
   const winPct = total ? Math.round((user.wins / total) * 100) : 0;
+  const badges = computeBadges({ wins: user.wins, losses: user.losses, draws: user.draws, rating: user.rating });
+  const earnedCount = badges.filter((b) => b.earned).length;
 
   return (
     <>
@@ -53,6 +56,30 @@ export default async function ProfilePage({ params }: { params: { username: stri
           <Stat label="Losses" value={user.losses} className="text-rose-400" />
           <Stat label="Draws" value={user.draws} className="text-muted-foreground" />
           <Stat label="Win %" value={`${winPct}%`} className="text-primary" />
+        </div>
+
+        <div className="mb-6">
+          <h2 className="mb-3 text-lg font-bold">
+            Badges <span className="text-sm font-normal text-muted-foreground">({earnedCount}/{badges.length})</span>
+          </h2>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {badges.map((b) => (
+              <div
+                key={b.key}
+                className={cn(
+                  'flex items-center gap-2 rounded-xl border p-2.5',
+                  b.earned ? 'border-primary/40 bg-primary/10' : 'border-border bg-card opacity-50'
+                )}
+                title={b.desc}
+              >
+                <span className={cn('text-2xl', !b.earned && 'grayscale')}>{b.emoji}</span>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-foreground">{b.label}</p>
+                  <p className="truncate text-[11px] text-muted-foreground">{b.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         <h2 className="mb-3 text-lg font-bold">Recent games</h2>
