@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { Crown, Trophy, Eye, Users, LogOut, Shield, Bot, Settings } from 'lucide-react';
+import { Crown, Trophy, Eye, Users, LogOut, Shield, Bot, Settings, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import InstallButton from '@/components/InstallButton';
 
@@ -15,6 +15,7 @@ const LINKS = [
   { href: '/computer', label: 'Computer', icon: Bot },
   { href: '/leaderboard', label: 'Leaderboard', icon: Trophy },
   { href: '/watch', label: 'Watch', icon: Eye },
+  { href: '/chat', label: 'Chat', icon: MessageSquare },
   { href: '/players', label: 'Players', icon: Users },
 ];
 

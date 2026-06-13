@@ -9,6 +9,7 @@ import ChessBoard from '@/components/chess/ChessBoard';
 import BoardSettings from '@/components/chess/BoardSettings';
 import GameEndModal, { type GameResult, type GameEndReason } from '@/components/chess/GameEndModal';
 import { Button } from '@/components/ui/button';
+import ChatPanel from '@/components/ChatPanel';
 import { loadBoardPrefs, type BoardPreferences } from '@/lib/chess-preferences';
 import { formatClock } from '@/lib/clock';
 import { describeTimeControl } from '@/lib/time-controls';
@@ -314,6 +315,9 @@ export default function GameClient({ gameId, meId }: { gameId: string; meId: str
               {resultText(game)}
             </p>
           )}
+
+          {/* In-game chat — players and spectators share it */}
+          <ChatPanel scope={`game:${gameId}`} title={isSpectator ? 'Watchers & players' : 'Game chat'} heightClass="h-56" />
         </div>
       </div>
 

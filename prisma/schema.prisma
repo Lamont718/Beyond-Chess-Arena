@@ -32,6 +32,19 @@ model User {
   gamesAsBlack       Game[]      @relation("BlackGames")
   challengesSent     Challenge[] @relation("ChallengeFrom")
   challengesReceived Challenge[] @relation("ChallengeTo")
+  chatMessages       ChatMessage[]
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  scope     String   @default("global") // "global" (club chat) | "game:<gameId>" (in-game)
+  userId    String
+  text      String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([scope, createdAt])
 }
 
 model Game {
