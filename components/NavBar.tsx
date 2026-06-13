@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { Crown, Trophy, Eye, Users, LogOut, Shield, Bot } from 'lucide-react';
+import { Crown, Trophy, Eye, Users, LogOut, Shield, Bot, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import InstallButton from '@/components/InstallButton';
 
@@ -79,6 +79,17 @@ export default function NavBar({ me }: NavBarProps) {
               <div className="text-sm font-semibold text-foreground">{me.displayName}</div>
               <div className="text-xs text-muted-foreground">{me.rating}</div>
             </div>
+          </Link>
+          <Link
+            href="/settings"
+            className={cn(
+              'rounded-lg p-2 transition-colors hover:bg-muted hover:text-foreground',
+              pathname.startsWith('/settings') ? 'text-primary' : 'text-muted-foreground'
+            )}
+            title="Settings"
+            aria-label="Settings"
+          >
+            <Settings className="h-4 w-4" />
           </Link>
           <button
             onClick={logout}
