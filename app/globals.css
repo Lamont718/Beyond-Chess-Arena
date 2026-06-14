@@ -4,25 +4,26 @@
 
 @layer base {
   :root {
-    --background: 30 7% 15%;
-    --foreground: 40 12% 92%;
-    --card: 30 7% 20%;
-    --card-foreground: 40 12% 92%;
-    --popover: 30 7% 18%;
-    --popover-foreground: 40 12% 92%;
-    --primary: 38 92% 55%;
-    --primary-foreground: 36 45% 12%;
-    --secondary: 30 6% 27%;
-    --secondary-foreground: 40 12% 92%;
-    --muted: 30 6% 25%;
-    --muted-foreground: 40 6% 66%;
-    --accent: 38 92% 55%;
-    --accent-foreground: 36 45% 12%;
+    /* Midnight Club — deep navy base, sunny gold primary, mint accent */
+    --background: 218 32% 15%;
+    --foreground: 216 30% 95%;
+    --card: 220 33% 22%;
+    --card-foreground: 216 30% 95%;
+    --popover: 219 33% 19%;
+    --popover-foreground: 216 30% 95%;
+    --primary: 42 100% 65%;
+    --primary-foreground: 220 45% 12%;
+    --secondary: 220 25% 30%;
+    --secondary-foreground: 216 30% 95%;
+    --muted: 220 22% 27%;
+    --muted-foreground: 216 16% 70%;
+    --accent: 165 59% 50%;
+    --accent-foreground: 195 60% 9%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
-    --border: 30 7% 31%;
-    --input: 30 7% 31%;
-    --ring: 38 92% 55%;
+    --border: 220 22% 32%;
+    --input: 220 22% 32%;
+    --ring: 42 100% 65%;
     --radius: 0.75rem;
   }
 
@@ -46,7 +47,7 @@
 .arena-bg {
   background-color: hsl(var(--background));
   background-image:
-    radial-gradient(60rem 60rem at 15% -10%, hsl(38 92% 55% / 0.08), transparent 60%),
-    radial-gradient(50rem 50rem at 100% 0%, hsl(160 60% 45% / 0.06), transparent 55%);
+    radial-gradient(60rem 60rem at 15% -10%, hsl(42 100% 60% / 0.09), transparent 60%),
+    radial-gradient(50rem 50rem at 100% 0%, hsl(165 59% 50% / 0.08), transparent 55%);
   min-height: 100vh;
 }

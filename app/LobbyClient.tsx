@@ -202,7 +202,7 @@ export default function LobbyClient({ meId }: { meId: string }) {
                 </Button>
               </div>
             ) : (
-              <Button className="w-full" size="lg" onClick={quickPlay}>
+              <Button className="w-full" variant="accent" size="lg" onClick={quickPlay}>
                 <Swords className="mr-2 h-5 w-5" /> Find an opponent · {describeTimeControl(tc.seconds, tc.increment)}
               </Button>
             )}
