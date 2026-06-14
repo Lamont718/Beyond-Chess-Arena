@@ -237,3 +237,35 @@ export function bestMove(fen: string, level: EngineLevel): { from: string; to: s
 function pick(m: Move): { from: string; to: string; promotion?: string } {
   return { from: m.from, to: m.to, promotion: m.promotion };
 }
+
+export interface ScoredMove {
+  uci: string; // e.g. "e2e4", "e7e8q"
+  score: number; // centipawns from the side-to-move's perspective (mate ≈ ±MATE)
+}
+
+/**
+ * Score every legal move in a position to a fixed depth. Used by post-game
+ * analysis: the best move is the max score, and a played move's "centipawn loss"
+ * is bestScore − thatMove'sScore. One search covers both, so analysing a whole
+ * game is one search per ply.
+ */
+export function analyzeMoves(
+  fen: string,
+  opts: { depth: number; nodeCap: number; timeMs: number }
+): ScoredMove[] {
+  const game = new Chess(fen);
+  const legal = game.moves({ verbose: true }) as Move[];
+  if (legal.length === 0) return [];
+
+  const st: SearchState = { nodes: 0, cap: opts.nodeCap, deadline: Date.now() + opts.timeMs, aborted: false };
+  const out: ScoredMove[] = [];
+  for (const m of orderMoves(legal)) {
+    game.move(m);
+    const score = -negamax(game, opts.depth - 1, -Infinity, Infinity, st);
+    game.undo();
+    out.push({ uci: m.from + m.to + (m.promotion || ''), score });
+  }
+  return out;
+}
+
+export { MATE };
