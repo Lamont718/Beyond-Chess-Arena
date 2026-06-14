@@ -11,7 +11,8 @@ export async function createGame(
   whiteId: string,
   blackId: string,
   seconds: number,
-  increment: number
+  increment: number,
+  tournamentId?: string
 ) {
   return prisma.game.create({
     data: {
@@ -26,6 +27,7 @@ export async function createGame(
       whiteMs: seconds > 0 ? seconds * 1000 : null,
       blackMs: seconds > 0 ? seconds * 1000 : null,
       lastMoveAt: new Date(),
+      tournamentId: tournamentId ?? null,
     },
   });
 }
@@ -89,6 +91,43 @@ export async function finalizeGame(
         draws: black.draws + (opts.result === 'draw' ? 1 : 0),
       },
     });
+
+    // Tournament scoring: if this game belongs to a tournament, update both
+    // players' standings (win = 1, draw = 0.5) and auto-complete the tournament
+    // once its last game finishes.
+    if (game.tournamentId) {
+      const whitePts = opts.result === 'white_wins' ? 1 : opts.result === 'draw' ? 0.5 : 0;
+      const blackPts = opts.result === 'black_wins' ? 1 : opts.result === 'draw' ? 0.5 : 0;
+
+      await tx.tournamentPlayer.updateMany({
+        where: { tournamentId: game.tournamentId, userId: white.id },
+        data: {
+          points: { increment: whitePts },
+          wins: { increment: opts.result === 'white_wins' ? 1 : 0 },
+          draws: { increment: opts.result === 'draw' ? 1 : 0 },
+          losses: { increment: opts.result === 'black_wins' ? 1 : 0 },
+        },
+      });
+      await tx.tournamentPlayer.updateMany({
+        where: { tournamentId: game.tournamentId, userId: black.id },
+        data: {
+          points: { increment: blackPts },
+          wins: { increment: opts.result === 'black_wins' ? 1 : 0 },
+          draws: { increment: opts.result === 'draw' ? 1 : 0 },
+          losses: { increment: opts.result === 'white_wins' ? 1 : 0 },
+        },
+      });
+
+      const remaining = await tx.game.count({
+        where: { tournamentId: game.tournamentId, status: 'active' },
+      });
+      if (remaining === 0) {
+        await tx.tournament.updateMany({
+          where: { id: game.tournamentId, status: 'active' },
+          data: { status: 'completed', endedAt: new Date() },
+        });
+      }
+    }
 
     return tx.game.findUnique({ where: { id: gameId } });
   });

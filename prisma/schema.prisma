@@ -40,6 +40,40 @@ model User {
   challengesReceived Challenge[] @relation("ChallengeTo")
   chatMessages       ChatMessage[]
   puzzleSolves       PuzzleSolve[]
+  tournamentPlayers  TournamentPlayer[]
+}
+
+model Tournament {
+  id             String    @id @default(cuid())
+  name           String
+  status         String    @default("upcoming") // "upcoming" | "active" | "completed"
+  timeControlSec Int       @default(300)
+  incrementSec   Int       @default(0)
+  createdById    String
+  createdAt      DateTime  @default(now())
+  startedAt      DateTime?
+  endedAt        DateTime?
+
+  players TournamentPlayer[]
+
+  @@index([status])
+}
+
+model TournamentPlayer {
+  id           String   @id @default(cuid())
+  tournamentId String
+  userId       String
+  points       Float    @default(0) // win = 1, draw = 0.5
+  wins         Int      @default(0)
+  draws        Int      @default(0)
+  losses       Int      @default(0)
+  joinedAt     DateTime @default(now())
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id])
+
+  @@unique([tournamentId, userId])
+  @@index([tournamentId])
 }
 
 model PuzzleSolve {
@@ -94,6 +128,8 @@ model Game {
   whiteRatingAfter  Int?
   blackRatingAfter  Int?
 
+  tournamentId String? // set when this game is part of a tournament
+
   createdAt DateTime  @default(now())
   endedAt   DateTime?
 
@@ -103,6 +139,7 @@ model Game {
   @@index([status])
   @@index([whiteId])
   @@index([blackId])
+  @@index([tournamentId])
 }
 
 model Challenge {
