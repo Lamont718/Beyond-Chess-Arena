@@ -8,6 +8,7 @@ import { Swords, Loader2, Check, X, Circle, Eye, Trophy, Clock, Bot } from 'luci
 import { Button } from '@/components/ui/button';
 import { TIME_CONTROLS, describeTimeControl } from '@/lib/time-controls';
 import { cn } from '@/lib/utils';
+import DailyPuzzleCard from '@/components/DailyPuzzleCard';
 
 interface PublicUser {
   id: string;
@@ -281,6 +282,9 @@ export default function LobbyClient({ meId }: { meId: string }) {
 
         {/* Sidebar */}
         <div className="space-y-6">
+          {/* Daily puzzle promo */}
+          <DailyPuzzleCard />
+
           {/* Leaderboard */}
           <section className="rounded-2xl border border-border bg-card p-5">
             <h2 className="mb-3 flex items-center gap-2 text-lg font-bold">

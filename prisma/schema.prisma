@@ -28,11 +28,31 @@ model User {
   createdAt    DateTime @default(now())
   lastSeenAt   DateTime @default(now())
 
+  // Daily-puzzle streak tracking.
+  puzzleStreak     Int     @default(0) // current consecutive-day streak
+  puzzleBestStreak Int     @default(0) // longest streak ever
+  puzzleLastDate   String? // last solved day key, "YYYY-MM-DD" (America/New_York)
+  puzzlesSolved    Int     @default(0) // lifetime puzzles solved
+
   gamesAsWhite       Game[]      @relation("WhiteGames")
   gamesAsBlack       Game[]      @relation("BlackGames")
   challengesSent     Challenge[] @relation("ChallengeFrom")
   challengesReceived Challenge[] @relation("ChallengeTo")
   chatMessages       ChatMessage[]
+  puzzleSolves       PuzzleSolve[]
+}
+
+model PuzzleSolve {
+  id        String   @id @default(cuid())
+  userId    String
+  dateKey   String   // "YYYY-MM-DD" (America/New_York) — one puzzle per day
+  puzzleId  String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, dateKey]) // a day can only be solved once
+  @@index([dateKey])
 }
 
 model ChatMessage {

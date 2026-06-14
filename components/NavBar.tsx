@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { Crown, Trophy, Eye, Users, LogOut, Shield, Bot, Settings, MessageSquare } from 'lucide-react';
+import { Crown, Trophy, Eye, Users, LogOut, Shield, Bot, Settings, MessageSquare, Puzzle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import InstallButton from '@/components/InstallButton';
 
@@ -13,6 +13,7 @@ interface NavBarProps {
 const LINKS = [
   { href: '/', label: 'Play', icon: Crown },
   { href: '/computer', label: 'Computer', icon: Bot },
+  { href: '/puzzle', label: 'Puzzle', icon: Puzzle },
   { href: '/leaderboard', label: 'Leaderboard', icon: Trophy },
   { href: '/watch', label: 'Watch', icon: Eye },
   { href: '/chat', label: 'Chat', icon: MessageSquare },
