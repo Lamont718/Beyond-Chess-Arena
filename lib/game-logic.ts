@@ -1,6 +1,7 @@
 import 'server-only';
 import { prisma } from './prisma';
 import { applyElo } from './elo';
+import { XP_AWARDS } from './levels';
 
 export type GameResult = 'white_wins' | 'black_wins' | 'draw';
 
@@ -73,10 +74,14 @@ export async function finalizeGame(
       },
     });
 
+    const whiteXp = opts.result === 'white_wins' ? XP_AWARDS.win : opts.result === 'draw' ? XP_AWARDS.draw : XP_AWARDS.loss;
+    const blackXp = opts.result === 'black_wins' ? XP_AWARDS.win : opts.result === 'draw' ? XP_AWARDS.draw : XP_AWARDS.loss;
+
     await tx.user.update({
       where: { id: white.id },
       data: {
         rating: newWhite,
+        xp: { increment: whiteXp },
         wins: white.wins + (opts.result === 'white_wins' ? 1 : 0),
         losses: white.losses + (opts.result === 'black_wins' ? 1 : 0),
         draws: white.draws + (opts.result === 'draw' ? 1 : 0),
@@ -86,6 +91,7 @@ export async function finalizeGame(
       where: { id: black.id },
       data: {
         rating: newBlack,
+        xp: { increment: blackXp },
         wins: black.wins + (opts.result === 'black_wins' ? 1 : 0),
         losses: black.losses + (opts.result === 'white_wins' ? 1 : 0),
         draws: black.draws + (opts.result === 'draw' ? 1 : 0),

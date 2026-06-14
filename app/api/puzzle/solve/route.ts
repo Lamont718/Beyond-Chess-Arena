@@ -4,6 +4,7 @@ import { Chess } from 'chess.js';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/session';
 import { getDailyPuzzle, nyDateKey, dayIndex } from '@/lib/daily-puzzle';
+import { XP_AWARDS } from '@/lib/levels';
 
 export const dynamic = 'force-dynamic';
 
@@ -72,6 +73,7 @@ export async function POST(req: Request) {
         puzzleBestStreak: bestStreak,
         puzzleLastDate: dateKey,
         puzzlesSolved: { increment: 1 },
+        xp: { increment: XP_AWARDS.puzzle },
       },
     }),
   ]);

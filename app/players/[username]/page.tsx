@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma';
 import NavBar from '@/components/NavBar';
 import { describeTimeControl } from '@/lib/time-controls';
 import { computeBadges } from '@/lib/badges';
+import { levelFromXp } from '@/lib/levels';
+import { computeQuests } from '@/lib/quests';
 import { cn } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -27,6 +29,16 @@ export default async function ProfilePage({ params }: { params: { username: stri
   const winPct = total ? Math.round((user.wins / total) * 100) : 0;
   const badges = computeBadges({ wins: user.wins, losses: user.losses, draws: user.draws, rating: user.rating });
   const earnedCount = badges.filter((b) => b.earned).length;
+  const lvl = levelFromXp(user.xp);
+  const isMe = me.id === user.id;
+  const quests = computeQuests({
+    wins: user.wins,
+    losses: user.losses,
+    draws: user.draws,
+    rating: user.rating,
+    puzzlesSolved: user.puzzlesSolved,
+    puzzleBestStreak: user.puzzleBestStreak,
+  });
 
   return (
     <>
@@ -44,11 +56,28 @@ export default async function ProfilePage({ params }: { params: { username: stri
               )}
             </h1>
             <p className="text-sm text-muted-foreground">@{user.username}</p>
+            <span className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-accent/15 px-2.5 py-0.5 text-xs font-semibold text-accent">
+              {lvl.emoji} Level {lvl.level} · {lvl.title}
+            </span>
           </div>
           <div className="text-right">
             <div className="text-3xl font-bold text-primary">{user.rating}</div>
             <div className="text-xs uppercase tracking-wide text-muted-foreground">Rating</div>
           </div>
+        </div>
+
+        {/* XP / level progress */}
+        <div className="mb-6 rounded-2xl border border-border bg-card p-5">
+          <div className="mb-2 flex items-end justify-between">
+            <h2 className="text-sm font-semibold text-muted-foreground">Experience</h2>
+            <span className="text-xs text-muted-foreground">
+              {lvl.xpIntoLevel} / {lvl.xpForNext} XP to Level {lvl.level + 1}
+            </span>
+          </div>
+          <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
+            <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${lvl.progressPct}%` }} />
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">{user.xp} total XP earned from games and puzzles.</p>
         </div>
 
         <div className="mb-6 grid grid-cols-4 gap-3">
@@ -57,6 +86,43 @@ export default async function ProfilePage({ params }: { params: { username: stri
           <Stat label="Draws" value={user.draws} className="text-muted-foreground" />
           <Stat label="Win %" value={`${winPct}%`} className="text-primary" />
         </div>
+
+        {isMe && (
+          <div className="mb-6">
+            <h2 className="mb-3 text-lg font-bold">
+              Challenges{' '}
+              <span className="text-sm font-normal text-muted-foreground">
+                ({quests.filter((q) => q.done).length}/{quests.length})
+              </span>
+            </h2>
+            <div className="space-y-2">
+              {quests.map((q) => (
+                <div
+                  key={q.key}
+                  className={cn(
+                    'rounded-xl border p-3',
+                    q.done ? 'border-emerald-500/40 bg-emerald-500/10' : 'border-border bg-card'
+                  )}
+                >
+                  <div className="mb-1.5 flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-2 font-medium text-foreground">
+                      <span className="text-lg">{q.emoji}</span> {q.label}
+                    </span>
+                    <span className={cn('font-semibold', q.done ? 'text-emerald-400' : 'text-muted-foreground')}>
+                      {q.done ? 'Done ✓' : `${q.current}/${q.target}`}
+                    </span>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                    <div
+                      className={cn('h-full rounded-full transition-all', q.done ? 'bg-emerald-500' : 'bg-primary')}
+                      style={{ width: `${Math.round((q.current / q.target) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="mb-6">
           <h2 className="mb-3 text-lg font-bold">

@@ -3,19 +3,21 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { KeyRound, Smile } from 'lucide-react';
+import { KeyRound, Smile, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { AVATARS } from '@/lib/avatars';
+import { AVATAR_DEFS } from '@/lib/avatars';
 import { cn } from '@/lib/utils';
 
 export default function SettingsClient({
   displayName,
   username,
   emoji,
+  level,
 }: {
   displayName: string;
   username: string;
   emoji: string;
+  level: number;
 }) {
   const router = useRouter();
   const [avatar, setAvatar] = useState(emoji);
@@ -24,7 +26,11 @@ export default function SettingsClient({
   const [confirm, setConfirm] = useState('');
   const [saving, setSaving] = useState(false);
 
-  async function pickAvatar(e: string) {
+  async function pickAvatar(e: string, unlockLevel: number) {
+    if (level < unlockLevel) {
+      toast.info(`That avatar unlocks at Level ${unlockLevel}. Keep playing!`);
+      return;
+    }
     const prev = avatar;
     setAvatar(e);
     const res = await fetch('/api/auth/avatar', {
@@ -92,21 +98,32 @@ export default function SettingsClient({
           <Smile className="h-4 w-4 text-primary" /> Your avatar
         </h2>
         <div className="flex flex-wrap gap-1.5">
-          {AVATARS.map((e) => (
-            <button
-              key={e}
-              type="button"
-              onClick={() => pickAvatar(e)}
-              className={cn(
-                'flex h-10 w-10 items-center justify-center rounded-lg border text-xl transition-all',
-                avatar === e ? 'border-primary ring-2 ring-primary/30' : 'border-border hover:border-primary/40'
-              )}
-              aria-label={`Choose ${e}`}
-            >
-              {e}
-            </button>
-          ))}
+          {AVATAR_DEFS.map(({ emoji: e, unlockLevel }) => {
+            const locked = level < unlockLevel;
+            return (
+              <button
+                key={e}
+                type="button"
+                onClick={() => pickAvatar(e, unlockLevel)}
+                title={locked ? `Unlocks at Level ${unlockLevel}` : undefined}
+                className={cn(
+                  'relative flex h-10 w-10 items-center justify-center rounded-lg border text-xl transition-all',
+                  avatar === e ? 'border-primary ring-2 ring-primary/30' : 'border-border hover:border-primary/40',
+                  locked && 'opacity-40'
+                )}
+                aria-label={locked ? `${e}, locked until level ${unlockLevel}` : `Choose ${e}`}
+              >
+                {e}
+                {locked && (
+                  <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-muted text-[8px] font-bold text-muted-foreground ring-1 ring-border">
+                    <Lock className="h-2.5 w-2.5" />
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
+        <p className="mt-2 text-xs text-muted-foreground">Unlock more avatars by leveling up. You&apos;re Level {level}.</p>
       </div>
 
       <form onSubmit={submit} className="space-y-3 rounded-2xl border border-border bg-card p-6">

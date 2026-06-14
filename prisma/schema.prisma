@@ -21,6 +21,7 @@ model User {
   displayName  String
   role         String   @default("KID") // "COACH" | "KID"
   rating       Int      @default(1000)
+  xp           Int      @default(0) // experience points → level (see lib/levels.ts)
   wins         Int      @default(0)
   losses       Int      @default(0)
   draws        Int      @default(0)
