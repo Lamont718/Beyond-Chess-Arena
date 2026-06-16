@@ -9,6 +9,7 @@ const schema = z.object({
   toUserId: z.string().min(1),
   seconds: z.number().int().min(0).max(7200),
   increment: z.number().int().min(0).max(60),
+  rated: z.boolean().optional().default(true),
 });
 
 // Challenge a specific player by id.
@@ -18,7 +19,7 @@ export async function POST(req: Request) {
 
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: 'bad request' }, { status: 400 });
-  const { toUserId, seconds, increment } = parsed.data;
+  const { toUserId, seconds, increment, rated } = parsed.data;
 
   if (toUserId === me.id)
     return NextResponse.json({ error: "You can't challenge yourself." }, { status: 400 });
@@ -33,13 +34,13 @@ export async function POST(req: Request) {
   if (existing) {
     await prisma.challenge.update({
       where: { id: existing.id },
-      data: { timeControlSec: seconds, incrementSec: increment, createdAt: new Date() },
+      data: { timeControlSec: seconds, incrementSec: increment, rated, createdAt: new Date() },
     });
     return NextResponse.json({ ok: true, id: existing.id });
   }
 
   const challenge = await prisma.challenge.create({
-    data: { fromId: me.id, toId: toUserId, timeControlSec: seconds, incrementSec: increment },
+    data: { fromId: me.id, toId: toUserId, timeControlSec: seconds, incrementSec: increment, rated },
   });
   return NextResponse.json({ ok: true, id: challenge.id });
 }

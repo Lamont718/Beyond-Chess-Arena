@@ -39,7 +39,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
   // accept → spin up a game.
   const { whiteId, blackId } = assignColors(challenge.fromId, me.id);
-  const game = await createGame(whiteId, blackId, challenge.timeControlSec, challenge.incrementSec);
+  const game = await createGame(whiteId, blackId, challenge.timeControlSec, challenge.incrementSec, { rated: challenge.rated });
   await prisma.challenge.update({
     where: { id: challenge.id },
     data: { status: 'accepted', gameId: game.id },

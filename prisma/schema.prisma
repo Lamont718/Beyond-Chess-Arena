@@ -120,6 +120,7 @@ model Game {
   result    String? // "white_wins" | "black_wins" | "draw"
   reason    String? // "checkmate" | "resignation" | "timeout" | "stalemate" | "draw-agreement" | ...
   winnerId  String?
+  rated     Boolean  @default(true) // false = Casual: no Elo / record change, XP only
 
   timeControlSec Int  @default(300) // initial clock per side, 0 = untimed
   incrementSec   Int  @default(0)
@@ -157,6 +158,7 @@ model Challenge {
   toId           String? // null = open seek (quick-play matchmaking)
   timeControlSec Int      @default(300)
   incrementSec   Int      @default(0)
+  rated          Boolean  @default(true) // carried onto the Game when matched
   status         String   @default("open") // "open" | "accepted" | "declined" | "cancelled"
   gameId         String? // set when accepted
   createdAt      DateTime @default(now())

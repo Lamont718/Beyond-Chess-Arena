@@ -35,7 +35,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
 
   // Create all the games tagged with this tournament (we hold the exclusive start).
   for (const pair of pairings) {
-    await createGame(pair.whiteId, pair.blackId, t.timeControlSec, t.incrementSec, t.id);
+    await createGame(pair.whiteId, pair.blackId, t.timeControlSec, t.incrementSec, { tournamentId: t.id });
   }
 
   return NextResponse.json({ ok: true, games: pairings.length });

@@ -13,7 +13,7 @@ export async function createGame(
   blackId: string,
   seconds: number,
   increment: number,
-  tournamentId?: string
+  opts: { tournamentId?: string; rated?: boolean } = {}
 ) {
   return prisma.game.create({
     data: {
@@ -28,7 +28,8 @@ export async function createGame(
       whiteMs: seconds > 0 ? seconds * 1000 : null,
       blackMs: seconds > 0 ? seconds * 1000 : null,
       lastMoveAt: new Date(),
-      tournamentId: tournamentId ?? null,
+      rated: opts.rated ?? true,
+      tournamentId: opts.tournamentId ?? null,
     },
   });
 }
@@ -55,8 +56,12 @@ export async function finalizeGame(
     const black = await tx.user.findUnique({ where: { id: game.blackId } });
     if (!white || !black) return game;
 
+    // Casual games close out and award XP, but never move Elo or the W/L/D record.
+    const rated = game.rated;
     const whiteScore = opts.result === 'white_wins' ? 1 : opts.result === 'black_wins' ? 0 : 0.5;
-    const { newWhite, newBlack } = applyElo(white.rating, black.rating, whiteScore);
+    const { newWhite, newBlack } = rated
+      ? applyElo(white.rating, black.rating, whiteScore)
+      : { newWhite: white.rating, newBlack: black.rating };
 
     await tx.game.update({
       where: { id: gameId },
@@ -67,10 +72,11 @@ export async function finalizeGame(
         winnerId: opts.winnerId ?? null,
         endedAt: new Date(),
         drawOfferBy: null,
-        whiteRatingBefore: white.rating,
-        blackRatingBefore: black.rating,
-        whiteRatingAfter: newWhite,
-        blackRatingAfter: newBlack,
+        // Rating snapshots only on rated games — left null marks a Casual game.
+        whiteRatingBefore: rated ? white.rating : null,
+        blackRatingBefore: rated ? black.rating : null,
+        whiteRatingAfter: rated ? newWhite : null,
+        blackRatingAfter: rated ? newBlack : null,
       },
     });
 
@@ -80,21 +86,25 @@ export async function finalizeGame(
     await tx.user.update({
       where: { id: white.id },
       data: {
-        rating: newWhite,
         xp: { increment: whiteXp },
-        wins: white.wins + (opts.result === 'white_wins' ? 1 : 0),
-        losses: white.losses + (opts.result === 'black_wins' ? 1 : 0),
-        draws: white.draws + (opts.result === 'draw' ? 1 : 0),
+        ...(rated && {
+          rating: newWhite,
+          wins: white.wins + (opts.result === 'white_wins' ? 1 : 0),
+          losses: white.losses + (opts.result === 'black_wins' ? 1 : 0),
+          draws: white.draws + (opts.result === 'draw' ? 1 : 0),
+        }),
       },
     });
     await tx.user.update({
       where: { id: black.id },
       data: {
-        rating: newBlack,
         xp: { increment: blackXp },
-        wins: black.wins + (opts.result === 'black_wins' ? 1 : 0),
-        losses: black.losses + (opts.result === 'white_wins' ? 1 : 0),
-        draws: black.draws + (opts.result === 'draw' ? 1 : 0),
+        ...(rated && {
+          rating: newBlack,
+          wins: black.wins + (opts.result === 'black_wins' ? 1 : 0),
+          losses: black.losses + (opts.result === 'white_wins' ? 1 : 0),
+          draws: black.draws + (opts.result === 'draw' ? 1 : 0),
+        }),
       },
     });
 

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/session';
 import { publicUser } from '@/lib/serialize';
+import { tryMatchOpenSeek } from '@/lib/matchmaking';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +25,12 @@ export async function GET() {
   if (!me) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
   const onlineSince = new Date(Date.now() - ONLINE_WINDOW_MS);
+
+  // Backstop for the matchmaking race: if I'm holding an open quick-play seek,
+  // try to pair it with another waiting seeker on every poll. No-ops cheaply
+  // when I have no open seek. This is what rescues two kids who both clicked
+  // "Find an opponent" at the same instant and would otherwise spin forever.
+  await tryMatchOpenSeek(me.id);
 
   const [players, myActiveGames, incomingChallenges, myOpenSeeks, liveGames, leaderboard] =
     await Promise.all([
@@ -72,12 +79,14 @@ export async function GET() {
       from: publicUser(c.from),
       timeControlSec: c.timeControlSec,
       incrementSec: c.incrementSec,
+      rated: c.rated,
     })),
     myOpenSeeks: myOpenSeeks.map((c) => ({
       id: c.id,
       to: c.to ? publicUser(c.to) : null,
       timeControlSec: c.timeControlSec,
       incrementSec: c.incrementSec,
+      rated: c.rated,
       gameId: c.gameId,
     })),
     liveGames: liveGames.map((g) => ({

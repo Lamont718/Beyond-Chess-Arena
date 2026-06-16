@@ -35,6 +35,7 @@ interface GameDTO {
   winnerId: string | null;
   timeControlSec: number;
   incrementSec: number;
+  rated: boolean;
   whiteMs: number | null;
   blackMs: number | null;
   lastMoveAt: string;
@@ -270,7 +271,7 @@ export default function GameClient({ gameId, meId }: { gameId: string; meId: str
           {/* Move history */}
           <section className="rounded-xl border border-border bg-card p-4">
             <h2 className="mb-2 text-sm font-semibold text-muted-foreground">
-              Moves · {describeTimeControl(game.timeControlSec, game.incrementSec)}
+              Moves · {describeTimeControl(game.timeControlSec, game.incrementSec)} · {game.rated ? 'Ranked' : 'Casual'}
             </h2>
             <MoveList moves={game.moves} />
           </section>
@@ -329,7 +330,7 @@ export default function GameClient({ gameId, meId }: { gameId: string; meId: str
           open
           result={modalResult}
           reason={(game.reason as GameEndReason) || 'resignation'}
-          subtitle={resultText(game)}
+          subtitle={game.rated ? resultText(game) : `${resultText(game)} · Casual — rating unchanged`}
           moveCount={game.moves.length}
           ratingChange={game.ratingChange}
           playAgainLabel={iOfferedRematch ? 'Rematch offered…' : 'Rematch'}

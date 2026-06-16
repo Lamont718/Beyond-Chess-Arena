@@ -56,6 +56,7 @@ export function serializeGame(game: any, viewerId: string | null) {
     winnerId: game.winnerId,
     timeControlSec: game.timeControlSec,
     incrementSec: game.incrementSec,
+    rated: game.rated,
     whiteMs,
     blackMs,
     lastMoveAt: game.lastMoveAt,

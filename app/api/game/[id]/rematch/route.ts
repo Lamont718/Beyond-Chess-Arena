@@ -23,7 +23,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
 
   // The opponent already offered → accept and create the new game (colors swapped).
   if (game.rematchOfferBy && game.rematchOfferBy !== me.id) {
-    const newGame = await createGame(game.blackId, game.whiteId, game.timeControlSec, game.incrementSec);
+    const newGame = await createGame(game.blackId, game.whiteId, game.timeControlSec, game.incrementSec, { rated: game.rated });
     // Atomically attach: only the first accept to land wins. If we lose the race
     // (rematchGameId already set), discard our just-created game and use the winner's.
     const attached = await prisma.game.updateMany({

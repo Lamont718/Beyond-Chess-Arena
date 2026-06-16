@@ -21,8 +21,8 @@ interface LobbyData {
   me: PublicUser & { role: string; wins: number; losses: number; draws: number };
   players: (PublicUser & { online: boolean; role: string })[];
   myActiveGames: { id: string; opponent: PublicUser; yourColor: string; isYourTurn: boolean; timeControlSec: number; incrementSec: number }[];
-  incomingChallenges: { id: string; from: PublicUser; timeControlSec: number; incrementSec: number }[];
-  myOpenSeeks: { id: string; to: PublicUser | null; timeControlSec: number; incrementSec: number; gameId: string | null }[];
+  incomingChallenges: { id: string; from: PublicUser; timeControlSec: number; incrementSec: number; rated: boolean }[];
+  myOpenSeeks: { id: string; to: PublicUser | null; timeControlSec: number; incrementSec: number; rated: boolean; gameId: string | null }[];
   liveGames: { id: string; white: PublicUser; black: PublicUser; moveCount: number }[];
   leaderboard: (PublicUser & { rank: number; wins: number; losses: number; draws: number })[];
 }
@@ -32,6 +32,7 @@ export default function LobbyClient({ meId }: { meId: string }) {
   const [data, setData] = useState<LobbyData | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [tcKey, setTcKey] = useState('5+0');
+  const [rated, setRated] = useState(true);
   const [seeking, setSeeking] = useState(false);
   const knownGameIds = useRef<Set<string> | null>(null);
   const failCount = useRef(0);
@@ -91,7 +92,7 @@ export default function LobbyClient({ meId }: { meId: string }) {
       const res = await fetch('/api/seek', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ seconds: tc.seconds, increment: tc.increment }),
+        body: JSON.stringify({ seconds: tc.seconds, increment: tc.increment, rated }),
       });
       const d = await res.json();
       if (d.gameId) {
@@ -114,9 +115,9 @@ export default function LobbyClient({ meId }: { meId: string }) {
     const res = await fetch('/api/challenge', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ toUserId: userId, seconds: tc.seconds, increment: tc.increment }),
+      body: JSON.stringify({ toUserId: userId, seconds: tc.seconds, increment: tc.increment, rated }),
     });
-    if (res.ok) toast.success(`Challenge sent to ${name} · ${describeTimeControl(tc.seconds, tc.increment)}`);
+    if (res.ok) toast.success(`Challenge sent to ${name} · ${describeTimeControl(tc.seconds, tc.increment)} · ${rated ? 'Ranked' : 'Casual'}`);
     else toast.error((await res.json()).error || 'Could not send challenge.');
   }
 
@@ -175,7 +176,7 @@ export default function LobbyClient({ meId }: { meId: string }) {
                   {c.from.displayName} challenges you!
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {describeTimeControl(c.timeControlSec, c.incrementSec)} · rating {c.from.rating}
+                  {describeTimeControl(c.timeControlSec, c.incrementSec)} · {c.rated ? 'Ranked' : 'Casual'} · rating {c.from.rating}
                 </p>
               </div>
               <Button size="sm" onClick={() => respondChallenge(c.id, 'accept')}>
@@ -217,6 +218,35 @@ export default function LobbyClient({ meId }: { meId: string }) {
                 </button>
               ))}
             </div>
+            {/* Ranked vs Casual */}
+            <div className="mb-4 grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setRated(true)}
+                className={cn(
+                  'rounded-xl border px-3 py-2.5 text-center transition-all',
+                  rated
+                    ? 'border-primary bg-primary/15 ring-2 ring-primary/30'
+                    : 'border-border bg-background hover:border-primary/40'
+                )}
+              >
+                <div className="flex items-center justify-center gap-1.5 text-sm font-bold text-foreground">
+                  <Trophy className="h-4 w-4 text-primary" /> Ranked
+                </div>
+                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Counts for rating</div>
+              </button>
+              <button
+                onClick={() => setRated(false)}
+                className={cn(
+                  'rounded-xl border px-3 py-2.5 text-center transition-all',
+                  !rated
+                    ? 'border-primary bg-primary/15 ring-2 ring-primary/30'
+                    : 'border-border bg-background hover:border-primary/40'
+                )}
+              >
+                <div className="text-sm font-bold text-foreground">Casual</div>
+                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Just for fun</div>
+              </button>
+            </div>
             {seeking ? (
               <div className="flex items-center gap-3 rounded-xl border border-primary/40 bg-primary/10 px-4 py-3">
                 <Loader2 className="h-5 w-5 animate-spin text-primary" />
@@ -229,7 +259,7 @@ export default function LobbyClient({ meId }: { meId: string }) {
               </div>
             ) : (
               <Button className="w-full" variant="accent" size="lg" onClick={quickPlay}>
-                <Swords className="mr-2 h-5 w-5" /> Find an opponent · {describeTimeControl(tc.seconds, tc.increment)}
+                <Swords className="mr-2 h-5 w-5" /> Find an opponent · {describeTimeControl(tc.seconds, tc.increment)} · {rated ? 'Ranked' : 'Casual'}
               </Button>
             )}
             <Link
