@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { Swords, Loader2, Check, X, Circle, Eye, Trophy, Clock, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TIME_CONTROLS, describeTimeControl } from '@/lib/time-controls';
+import { BOTS } from '@/lib/bots';
 import { cn } from '@/lib/utils';
 import DailyPuzzleCard from '@/components/DailyPuzzleCard';
 
@@ -109,6 +110,21 @@ export default function LobbyClient({ meId }: { meId: string }) {
   async function cancelSeek() {
     await fetch('/api/seek', { method: 'DELETE' });
     setSeeking(false);
+  }
+
+  async function playBot(level: string) {
+    try {
+      const res = await fetch('/api/bot-game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ level, seconds: tc.seconds, increment: tc.increment }),
+      });
+      const d = await res.json();
+      if (d.gameId) router.push(`/play/${d.gameId}`);
+      else toast.error(d.error || 'Could not start the bot game.');
+    } catch {
+      toast.error('Could not start the bot game.');
+    }
   }
 
   async function challenge(userId: string, name: string) {
@@ -266,8 +282,34 @@ export default function LobbyClient({ meId }: { meId: string }) {
               href="/computer"
               className="mt-2 flex items-center justify-center gap-2 rounded-xl border border-border bg-background py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
             >
-              <Bot className="h-4 w-4" /> Or practice vs the Computer
+              <Bot className="h-4 w-4" /> Or practice vs the Computer (unrated)
             </Link>
+          </section>
+
+          {/* Ranked bots — always-available opponents that count for your rating */}
+          <section className="rounded-2xl border border-border bg-card p-5">
+            <h2 className="mb-1 flex items-center gap-2 text-lg font-bold">
+              <Bot className="h-5 w-5 text-primary" /> Ranked Bots
+            </h2>
+            <p className="mb-4 text-sm text-muted-foreground">
+              No one around? Play a bot — these count toward your rating. Uses {describeTimeControl(tc.seconds, tc.increment)}.
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {BOTS.map((b) => (
+                <button
+                  key={b.username}
+                  onClick={() => playBot(b.level)}
+                  className="flex items-center gap-3 rounded-xl border border-border bg-background px-3 py-2.5 text-left transition-colors hover:border-primary/40"
+                >
+                  <span className="text-2xl">{b.emoji}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-foreground">{b.displayName} <span className="text-xs font-normal text-muted-foreground">· {b.rating}</span></p>
+                    <p className="truncate text-xs text-muted-foreground">{b.blurb}</p>
+                  </div>
+                  <Swords className="h-4 w-4 shrink-0 text-primary" />
+                </button>
+              ))}
+            </div>
           </section>
 
           {/* Continue playing */}

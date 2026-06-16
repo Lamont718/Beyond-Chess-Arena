@@ -34,7 +34,7 @@ export async function GET() {
 
   const [players, myActiveGames, incomingChallenges, myOpenSeeks, liveGames, leaderboard] =
     await Promise.all([
-      prisma.user.findMany({ orderBy: [{ rating: 'desc' }], take: 200, select: PLAYER_SELECT }),
+      prisma.user.findMany({ where: { role: { not: 'BOT' } }, orderBy: [{ rating: 'desc' }], take: 200, select: PLAYER_SELECT }),
       prisma.game.findMany({
         where: { status: 'active', OR: [{ whiteId: me.id }, { blackId: me.id }] },
         include: { white: { select: PUBLIC_USER_SELECT }, black: { select: PUBLIC_USER_SELECT } },
@@ -56,7 +56,7 @@ export async function GET() {
         orderBy: { lastMoveAt: 'desc' },
         take: 12,
       }),
-      prisma.user.findMany({ orderBy: [{ rating: 'desc' }], take: 10, select: LEADER_SELECT }),
+      prisma.user.findMany({ where: { role: { not: 'BOT' } }, orderBy: [{ rating: 'desc' }], take: 10, select: LEADER_SELECT }),
     ]);
 
   return NextResponse.json({

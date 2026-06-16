@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { Chess } from 'chess.js';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/session';
 import { serializeGame } from '@/lib/serialize';
-import { flaggedSide } from '@/lib/clock';
-import { finalizeGame, type GameResult } from '@/lib/game-logic';
+import { applyMove } from '@/lib/game-logic';
+import { maybeBotReply } from '@/lib/bot-move';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,92 +30,18 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   if (!myColor) return NextResponse.json({ error: 'You are not a player in this game' }, { status: 403 });
   if (game.turn !== myColor) return NextResponse.json({ error: 'Not your turn' }, { status: 409 });
 
-  // Did the clock already run out before this move landed?
-  const flagged = flaggedSide(game);
-  if (flagged) {
-    const result: GameResult = flagged === 'w' ? 'black_wins' : 'white_wins';
-    const winnerId = flagged === 'w' ? game.blackId : game.whiteId;
-    await finalizeGame(game.id, { result, reason: 'timeout', winnerId });
-    const after = await prisma.game.findUnique({
-      where: { id: game.id },
-      include: { white: true, black: true },
-    });
-    return NextResponse.json({ game: serializeGame(after, me.id) });
-  }
-
-  // Validate + apply the move authoritatively on the server.
-  const chess = new Chess(game.fen);
-  let san: string;
-  try {
-    const move = chess.move({ from: parsed.data.from, to: parsed.data.to, promotion: (parsed.data.promotion as any) || 'q' });
-    if (!move) throw new Error('illegal');
-    san = move.san;
-  } catch {
-    return NextResponse.json({ error: 'Illegal move' }, { status: 400 });
-  }
-
-  // Clocks.
-  const now = Date.now();
-  let whiteMs = game.whiteMs;
-  let blackMs = game.blackMs;
-  if (game.timeControlSec > 0 && whiteMs != null && blackMs != null) {
-    const elapsed = now - new Date(game.lastMoveAt).getTime();
-    if (myColor === 'w') whiteMs = Math.max(0, whiteMs - elapsed) + game.incrementSec * 1000;
-    else blackMs = Math.max(0, blackMs - elapsed) + game.incrementSec * 1000;
-  }
-
-  const moves: string[] = safeParse(game.movesJson);
-  moves.push(san);
-
-  // Optimistic lock: only apply if the position is still exactly what we
-  // validated against (same fen + turn + still active). This makes the
-  // read-modify-write atomic without a long transaction — a concurrent move or
-  // double-submit that already changed the board will match 0 rows and 409.
-  const applied = await prisma.game.updateMany({
-    where: { id: game.id, status: 'active', turn: myColor, fen: game.fen },
-    data: {
-      fen: chess.fen(),
-      movesJson: JSON.stringify(moves),
-      turn: chess.turn(),
-      whiteMs,
-      blackMs,
-      lastMoveAt: new Date(now),
-      drawOfferBy: null, // making a move declines any pending draw offer
-    },
-  });
-  if (applied.count === 0) {
+  const result = await applyMove(game, myColor, me.id, parsed.data);
+  if (result.status === 'illegal') return NextResponse.json({ error: 'Illegal move' }, { status: 400 });
+  if (result.status === 'conflict')
     return NextResponse.json({ error: 'Position changed — please retry.' }, { status: 409 });
-  }
 
-  // Terminal position?
-  if (chess.isGameOver()) {
-    if (chess.isCheckmate()) {
-      const result: GameResult = myColor === 'w' ? 'white_wins' : 'black_wins';
-      await finalizeGame(game.id, { result, reason: 'checkmate', winnerId: me.id });
-    } else {
-      const reason = chess.isStalemate()
-        ? 'stalemate'
-        : chess.isInsufficientMaterial()
-          ? 'insufficient-material'
-          : chess.isThreefoldRepetition()
-            ? 'threefold-repetition'
-            : 'fifty-move-rule';
-      await finalizeGame(game.id, { result: 'draw', reason });
-    }
-  }
+  // If the opponent is a bot and the game is still going, play its reply now so
+  // the move response already carries the bot's answer (snappy, no extra poll).
+  if (result.status === 'ok') await maybeBotReply(game.id);
 
   const after = await prisma.game.findUnique({
     where: { id: game.id },
     include: { white: true, black: true },
   });
-  return NextResponse.json({ game: serializeGame(after, me.id), move: san });
-}
-
-function safeParse(json: string): string[] {
-  try {
-    const v = JSON.parse(json);
-    return Array.isArray(v) ? v : [];
-  } catch {
-    return [];
-  }
+  return NextResponse.json({ game: serializeGame(after, me.id) });
 }

@@ -12,7 +12,7 @@ export default async function PlayersPage() {
   const me = await getCurrentUser();
   if (!me) redirect('/login');
 
-  const players = await prisma.user.findMany({ orderBy: [{ rating: 'desc' }] });
+  const players = await prisma.user.findMany({ where: { role: { not: 'BOT' } }, orderBy: [{ rating: 'desc' }] });
   const onlineSince = Date.now() - ONLINE_WINDOW_MS;
 
   return (

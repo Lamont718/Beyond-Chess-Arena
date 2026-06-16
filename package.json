@@ -9,6 +9,7 @@
     "lint": "next lint",
     "db:push": "prisma db push",
     "db:seed": "tsx scripts/seed.ts",
+    "db:seed-bots": "tsx scripts/seed-bots.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {

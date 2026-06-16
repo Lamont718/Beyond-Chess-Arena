@@ -11,7 +11,7 @@ export default async function CoachPage() {
   if (!me) redirect('/login');
   if (me.role !== 'COACH') redirect('/');
 
-  const users = await prisma.user.findMany({ orderBy: [{ role: 'asc' }, { displayName: 'asc' }] });
+  const users = await prisma.user.findMany({ where: { role: { not: 'BOT' } }, orderBy: [{ role: 'asc' }, { displayName: 'asc' }] });
 
   return (
     <>

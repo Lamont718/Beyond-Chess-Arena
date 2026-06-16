@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/session';
 import { serializeGame } from '@/lib/serialize';
 import { flaggedSide } from '@/lib/clock';
 import { finalizeGame } from '@/lib/game-logic';
+import { maybeBotReply } from '@/lib/bot-move';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,6 +28,19 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       where: { id: params.id },
       include: { white: true, black: true },
     });
+  }
+
+  // If it's a bot's turn (e.g. the bot has White and must open, or a reply was
+  // missed), generate its move before responding so the kid never waits on it.
+  if (game && game.status === 'active') {
+    const toMove = game.turn === 'w' ? game.white : game.black;
+    if (toMove?.role === 'BOT') {
+      await maybeBotReply(game.id);
+      game = await prisma.game.findUnique({
+        where: { id: params.id },
+        include: { white: true, black: true },
+      });
+    }
   }
 
   return NextResponse.json({ game: serializeGame(game, me.id) });
