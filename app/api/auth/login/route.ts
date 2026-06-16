@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { createSession } from '@/lib/session';
+import { rateLimit, clientIp } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Enter a username and password.' }, { status: 400 });
   }
   const username = parsed.data.username.trim().toLowerCase();
+
+  // Throttle brute-force: cap attempts per IP and per targeted username.
+  const ip = clientIp(req);
+  const byIp = rateLimit(`login:ip:${ip}`, 20, 60_000);
+  const byUser = rateLimit(`login:user:${username}`, 8, 60_000);
+  if (!byIp.ok || !byUser.ok) {
+    const retry = Math.max(byIp.retryAfterSec, byUser.retryAfterSec);
+    return NextResponse.json(
+      { error: 'Too many attempts. Please wait a moment and try again.' },
+      { status: 429, headers: { 'Retry-After': String(retry) } }
+    );
+  }
 
   const user = await prisma.user.findUnique({ where: { username } });
   if (!user || !(await bcrypt.compare(parsed.data.password, user.passwordHash))) {

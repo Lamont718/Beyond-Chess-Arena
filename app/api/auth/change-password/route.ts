@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 const schema = z.object({
   currentPassword: z.string().min(1),
-  newPassword: z.string().min(4, 'New password must be at least 4 characters.').max(72),
+  newPassword: z.string().min(6, 'New password must be at least 6 characters.').max(72),
 });
 
 export async function POST(req: Request) {

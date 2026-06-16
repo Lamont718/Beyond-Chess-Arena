@@ -30,9 +30,11 @@ interface LobbyData {
 export default function LobbyClient({ meId }: { meId: string }) {
   const router = useRouter();
   const [data, setData] = useState<LobbyData | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const [tcKey, setTcKey] = useState('5+0');
   const [seeking, setSeeking] = useState(false);
   const knownGameIds = useRef<Set<string> | null>(null);
+  const failCount = useRef(0);
 
   const tc = TIME_CONTROLS.find((t) => t.key === tcKey) ?? TIME_CONTROLS[1];
 
@@ -43,8 +45,14 @@ export default function LobbyClient({ meId }: { meId: string }) {
         router.push('/login');
         return;
       }
-      if (!res.ok) return;
+      if (!res.ok) {
+        failCount.current += 1;
+        if (failCount.current >= 3) setLoadError(true);
+        return;
+      }
       const d: LobbyData = await res.json();
+      failCount.current = 0;
+      setLoadError(false);
       setData(d);
 
       // If I'm waiting on a quick-play seek and it got matched, jump in.
@@ -67,13 +75,14 @@ export default function LobbyClient({ meId }: { meId: string }) {
         }
       }
     } catch {
-      /* ignore transient errors */
+      failCount.current += 1;
+      if (failCount.current >= 3) setLoadError(true);
     }
   }, [router]);
 
   useEffect(() => {
     poll();
-    const i = setInterval(poll, 1500);
+    const i = setInterval(poll, 3000);
     return () => clearInterval(i);
   }, [poll]);
 
@@ -124,8 +133,24 @@ export default function LobbyClient({ meId }: { meId: string }) {
 
   if (!data) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 text-center">
+        {loadError ? (
+          <>
+            <p className="text-sm text-muted-foreground">Couldn’t reach the arena. Check your connection.</p>
+            <Button
+              variant="outline"
+              onClick={() => {
+                failCount.current = 0;
+                setLoadError(false);
+                poll();
+              }}
+            >
+              Try again
+            </Button>
+          </>
+        ) : (
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        )}
       </div>
     );
   }

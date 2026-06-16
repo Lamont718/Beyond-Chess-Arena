@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Send, Trash2, MessageSquare } from 'lucide-react';
+import { Send, Trash2, MessageSquare, Flag } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 const QUICK_EMOTES = ['👋', 'Good game!', 'Nice move!', 'Good luck!', 'Wow! 🤩', '😄', 'Oops! 😅', 'Thanks!'];
@@ -10,6 +11,8 @@ interface ChatMsg {
   id: string;
   text: string;
   createdAt: string;
+  hidden?: boolean;
+  reportCount?: number;
   user: { id: string; username: string; displayName: string; emoji: string; role: string };
   mine: boolean;
 }
@@ -66,15 +69,28 @@ export default function ChatPanel({
     setSending(true);
     atBottomRef.current = true;
     try {
-      await fetch('/api/chat', {
+      const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scope, text: msg }),
       });
+      if (!res.ok) {
+        // Surface moderation blocks (profanity / contact-info) and rate limits.
+        const d = await res.json().catch(() => null);
+        toast.error(d?.error ?? "Couldn't send that message.");
+        return;
+      }
       await poll();
+    } catch {
+      toast.error('Network hiccup — message not sent.');
     } finally {
       setSending(false);
     }
+  }
+
+  async function report(id: string) {
+    await fetch(`/api/chat/${id}/report`, { method: 'POST' });
+    toast.success('Reported to a coach. Thanks for keeping it safe! 💚');
   }
 
   async function send(e: React.FormEvent) {
@@ -110,6 +126,24 @@ export default function ChatPanel({
                   <span className="text-xs font-semibold text-foreground">{m.user.displayName}</span>
                   {m.user.role === 'COACH' && (
                     <span className="rounded bg-emerald-500/20 px-1 text-[9px] font-bold text-emerald-400">COACH</span>
+                  )}
+                  {canModerate && m.hidden && (
+                    <span className="rounded bg-zinc-500/20 px-1 text-[9px] font-bold text-zinc-400">HIDDEN</span>
+                  )}
+                  {canModerate && !!m.reportCount && (
+                    <span className="rounded bg-amber-500/20 px-1 text-[9px] font-bold text-amber-400">
+                      ⚑ {m.reportCount}
+                    </span>
+                  )}
+                  {!m.mine && (
+                    <button
+                      onClick={() => report(m.id)}
+                      className="opacity-0 transition-opacity group-hover:opacity-100"
+                      title="Report to a coach"
+                      aria-label="Report message"
+                    >
+                      <Flag className="h-3 w-3 text-muted-foreground hover:text-amber-400" />
+                    </button>
                   )}
                   {(m.mine || canModerate) && (
                     <button

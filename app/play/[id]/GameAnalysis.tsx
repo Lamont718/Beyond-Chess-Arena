@@ -179,7 +179,7 @@ export default function GameAnalysis({ gameId }: { gameId: string }) {
                 {keyMoments.length ? 'Key moments' : 'All moves'}
               </h3>
               <div className="max-h-[24rem] space-y-1 overflow-y-auto pr-1">
-                {(keyMoments.length ? keyMoments : plies).map((p) => (
+                {(keyMoments.length ? keyMoments : plies ?? []).map((p) => (
                   <button
                     key={p.ply}
                     onClick={() => setSelected(p.ply)}

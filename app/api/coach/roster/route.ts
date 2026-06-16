@@ -14,7 +14,7 @@ const schema = z.object({
     .max(20)
     .regex(/^[a-zA-Z0-9_-]+$/, 'Letters, numbers, - and _ only.'),
   displayName: z.string().min(1).max(40),
-  password: z.string().min(4).max(72),
+  password: z.string().min(6).max(72),
   emoji: z.string().max(8).optional(),
   role: z.enum(['KID', 'COACH']).optional(),
 });

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BeyondChess Arena — Offline</title>
+  <style>
+    html,body{margin:0;height:100%;font-family:"Segoe UI",system-ui,sans-serif;
+      background:linear-gradient(150deg,#27365a 0%,#1a2435 55%,#121a29 100%);color:#e8edf6;}
+    .wrap{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;}
+    .knight{font-size:80px;color:#ffc94d;line-height:1;margin-bottom:8px;}
+    h1{font-size:22px;margin:8px 0;}
+    p{color:#aab4c5;max-width:22rem;line-height:1.5;}
+    button{margin-top:18px;border:0;border-radius:10px;background:#ffc94d;color:#1b2434;
+      font-weight:700;padding:10px 20px;font-size:15px;cursor:pointer;}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="knight">&#9822;</div>
+    <h1>You're offline</h1>
+    <p>BeyondChess Arena needs an internet connection to play live games. Check your connection and try again.</p>
+    <button onclick="location.reload()">Retry</button>
+  </div>
+</body>
+</html>

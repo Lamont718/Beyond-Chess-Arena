@@ -34,6 +34,15 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     if (!game.drawOfferBy || game.drawOfferBy === me.id) {
       return NextResponse.json({ error: 'No draw to accept.' }, { status: 409 });
     }
+    // Atomically consume the offer: if the offerer moved or revoked in the
+    // meantime (drawOfferBy changed), this matches 0 rows and we don't draw.
+    const consumed = await prisma.game.updateMany({
+      where: { id: game.id, status: 'active', drawOfferBy: game.drawOfferBy },
+      data: { drawOfferBy: null },
+    });
+    if (consumed.count === 0) {
+      return NextResponse.json({ error: 'That draw offer is no longer available.' }, { status: 409 });
+    }
     await finalizeGame(game.id, { result: 'draw', reason: 'draw-agreement' });
   }
 

@@ -7,6 +7,18 @@ export const dynamic = 'force-dynamic';
 
 const ONLINE_WINDOW_MS = 60_000;
 
+// Only the columns the lobby actually renders — never pull passwordHash / full
+// rows for list views (this runs on every poll for every online user).
+const PUBLIC_USER_SELECT = {
+  id: true,
+  username: true,
+  displayName: true,
+  rating: true,
+  emoji: true,
+} as const;
+const PLAYER_SELECT = { ...PUBLIC_USER_SELECT, role: true, lastSeenAt: true } as const;
+const LEADER_SELECT = { ...PUBLIC_USER_SELECT, wins: true, losses: true, draws: true } as const;
+
 export async function GET() {
   const me = await getCurrentUser();
   if (!me) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
@@ -15,29 +27,29 @@ export async function GET() {
 
   const [players, myActiveGames, incomingChallenges, myOpenSeeks, liveGames, leaderboard] =
     await Promise.all([
-      prisma.user.findMany({ orderBy: [{ rating: 'desc' }], take: 200 }),
+      prisma.user.findMany({ orderBy: [{ rating: 'desc' }], take: 200, select: PLAYER_SELECT }),
       prisma.game.findMany({
         where: { status: 'active', OR: [{ whiteId: me.id }, { blackId: me.id }] },
-        include: { white: true, black: true },
+        include: { white: { select: PUBLIC_USER_SELECT }, black: { select: PUBLIC_USER_SELECT } },
         orderBy: { lastMoveAt: 'desc' },
       }),
       prisma.challenge.findMany({
         where: { toId: me.id, status: 'open' },
-        include: { from: true },
+        include: { from: { select: PUBLIC_USER_SELECT } },
         orderBy: { createdAt: 'desc' },
       }),
       prisma.challenge.findMany({
         where: { fromId: me.id, status: 'open' },
-        include: { to: true },
+        include: { to: { select: PUBLIC_USER_SELECT } },
         orderBy: { createdAt: 'desc' },
       }),
       prisma.game.findMany({
         where: { status: 'active', AND: [{ whiteId: { not: me.id } }, { blackId: { not: me.id } }] },
-        include: { white: true, black: true },
+        include: { white: { select: PUBLIC_USER_SELECT }, black: { select: PUBLIC_USER_SELECT } },
         orderBy: { lastMoveAt: 'desc' },
         take: 12,
       }),
-      prisma.user.findMany({ orderBy: [{ rating: 'desc' }], take: 10 }),
+      prisma.user.findMany({ orderBy: [{ rating: 'desc' }], take: 10, select: LEADER_SELECT }),
     ]);
 
   return NextResponse.json({

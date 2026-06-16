@@ -316,8 +316,11 @@ export default function GameClient({ gameId, meId }: { gameId: string; meId: str
             </p>
           )}
 
-          {/* In-game chat — players and spectators share it */}
-          <ChatPanel scope={`game:${gameId}`} title={isSpectator ? 'Watchers & players' : 'Game chat'} heightClass="h-56" />
+          {/* In-game chat is private to the two players (kid-safety: spectators
+              can't read or post in someone else's game). */}
+          {isPlayer && (
+            <ChatPanel scope={`game:${gameId}`} title="Game chat" heightClass="h-56" />
+          )}
         </div>
       </div>
 

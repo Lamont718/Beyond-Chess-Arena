@@ -97,9 +97,16 @@ model ChatMessage {
   text      String
   createdAt DateTime @default(now())
 
+  // Moderation: soft-delete (retain evidence) + child-reporting.
+  hiddenAt    DateTime? // set when hidden by author or coach; row is kept for audit
+  deletedById String? // who hid it
+  reportCount Int       @default(0)
+  reportedAt  DateTime? // most recent report time
+
   user User @relation(fields: [userId], references: [id])
 
   @@index([scope, createdAt])
+  @@index([reportedAt])
 }
 
 model Game {
@@ -138,6 +145,7 @@ model Game {
   black User @relation("BlackGames", fields: [blackId], references: [id])
 
   @@index([status])
+  @@index([status, lastMoveAt])
   @@index([whiteId])
   @@index([blackId])
   @@index([tournamentId])
@@ -158,4 +166,5 @@ model Challenge {
 
   @@index([status])
   @@index([toId])
+  @@index([status, timeControlSec, incrementSec])
 }

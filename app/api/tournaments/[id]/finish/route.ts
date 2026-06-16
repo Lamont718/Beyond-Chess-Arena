@@ -16,16 +16,17 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
   if (!t) return NextResponse.json({ error: 'Tournament not found.' }, { status: 404 });
   if (t.status !== 'active') return NextResponse.json({ error: 'Tournament is not active.' }, { status: 400 });
 
-  await prisma.$transaction([
-    prisma.game.updateMany({
-      where: { tournamentId: t.id, status: 'active' },
-      data: { status: 'aborted', endedAt: new Date() },
-    }),
-    prisma.tournament.update({
-      where: { id: t.id },
-      data: { status: 'completed', endedAt: new Date() },
-    }),
-  ]);
+  // Claim the finish atomically so two coach clicks can't both run it.
+  const claim = await prisma.tournament.updateMany({
+    where: { id: t.id, status: 'active' },
+    data: { status: 'completed', endedAt: new Date() },
+  });
+  if (claim.count === 0) return NextResponse.json({ error: 'Tournament is not active.' }, { status: 400 });
+
+  await prisma.game.updateMany({
+    where: { tournamentId: t.id, status: 'active' },
+    data: { status: 'aborted', endedAt: new Date() },
+  });
 
   return NextResponse.json({ ok: true });
 }

@@ -23,17 +23,20 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     return NextResponse.json({ error: 'Need at least 2 players to start.' }, { status: 400 });
   }
 
+  // Claim the start atomically: only the first click flips upcoming→active, so a
+  // double-click / retry can't generate the round-robin twice.
+  const claim = await prisma.tournament.updateMany({
+    where: { id: t.id, status: 'upcoming' },
+    data: { status: 'active', startedAt: new Date() },
+  });
+  if (claim.count === 0) return NextResponse.json({ error: 'Already started.' }, { status: 400 });
+
   const pairings = roundRobinPairings(t.players.map((p) => p.userId));
 
-  // Create all the games tagged with this tournament.
+  // Create all the games tagged with this tournament (we hold the exclusive start).
   for (const pair of pairings) {
     await createGame(pair.whiteId, pair.blackId, t.timeControlSec, t.incrementSec, t.id);
   }
-
-  await prisma.tournament.update({
-    where: { id: t.id },
-    data: { status: 'active', startedAt: new Date() },
-  });
 
   return NextResponse.json({ ok: true, games: pairings.length });
 }

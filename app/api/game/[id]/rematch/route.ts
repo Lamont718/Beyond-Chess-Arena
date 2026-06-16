@@ -24,7 +24,17 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
   // The opponent already offered → accept and create the new game (colors swapped).
   if (game.rematchOfferBy && game.rematchOfferBy !== me.id) {
     const newGame = await createGame(game.blackId, game.whiteId, game.timeControlSec, game.incrementSec);
-    await prisma.game.update({ where: { id: game.id }, data: { rematchGameId: newGame.id } });
+    // Atomically attach: only the first accept to land wins. If we lose the race
+    // (rematchGameId already set), discard our just-created game and use the winner's.
+    const attached = await prisma.game.updateMany({
+      where: { id: game.id, rematchGameId: null },
+      data: { rematchGameId: newGame.id },
+    });
+    if (attached.count === 0) {
+      await prisma.game.delete({ where: { id: newGame.id } }).catch(() => {});
+      const fresh = await prisma.game.findUnique({ where: { id: game.id }, select: { rematchGameId: true } });
+      return NextResponse.json({ gameId: fresh?.rematchGameId ?? newGame.id });
+    }
     return NextResponse.json({ gameId: newGame.id });
   }
 

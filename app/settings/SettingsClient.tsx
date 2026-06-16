@@ -53,8 +53,8 @@ export default function SettingsClient({
       toast.error('New passwords do not match.');
       return;
     }
-    if (next.length < 4) {
-      toast.error('New password must be at least 4 characters.');
+    if (next.length < 6) {
+      toast.error('New password must be at least 6 characters.');
       return;
     }
     setSaving(true);

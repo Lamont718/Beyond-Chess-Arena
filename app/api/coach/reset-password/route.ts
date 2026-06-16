@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 const schema = z.object({
   userId: z.string().min(1),
-  password: z.string().min(4).max(72),
+  password: z.string().min(6).max(72),
 });
 
 // Reset a player's password (coach only).

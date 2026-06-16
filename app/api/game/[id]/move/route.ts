@@ -68,8 +68,12 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const moves: string[] = safeParse(game.movesJson);
   moves.push(san);
 
-  await prisma.game.update({
-    where: { id: game.id },
+  // Optimistic lock: only apply if the position is still exactly what we
+  // validated against (same fen + turn + still active). This makes the
+  // read-modify-write atomic without a long transaction — a concurrent move or
+  // double-submit that already changed the board will match 0 rows and 409.
+  const applied = await prisma.game.updateMany({
+    where: { id: game.id, status: 'active', turn: myColor, fen: game.fen },
     data: {
       fen: chess.fen(),
       movesJson: JSON.stringify(moves),
@@ -80,6 +84,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       drawOfferBy: null, // making a move declines any pending draw offer
     },
   });
+  if (applied.count === 0) {
+    return NextResponse.json({ error: 'Position changed — please retry.' }, { status: 409 });
+  }
 
   // Terminal position?
   if (chess.isGameOver()) {
